@@ -23,8 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 /** 已发布资讯读取；匿名和登录用户使用相同可见条件，不提供供稿或发布命令。 */
 @Service
 public class NoticeService {
-    private static final String ATTACHMENTS_EXIST =
-            "SELECT 1 FROM notice_attachment a WHERE a.notice_id = notice.id";
+    private static final String VISIBLE_ATTACHMENTS_EXIST =
+            "SELECT 1 FROM notice_attachment a WHERE a.notice_id = notice.id AND a.withdrawn_at IS NULL";
     private final NoticeMapper notices;
     private final NoticeAttachmentMapper attachments;
     private final NoticeAttachmentStorage storage;
@@ -56,8 +56,8 @@ public class NoticeService {
             query.apply("title LIKE {0} ESCAPE '!'", "%" + page.keyword() + "%");
         }
         if (filter.hasAttachments() != null) {
-            if (filter.hasAttachments()) query.exists(ATTACHMENTS_EXIST);
-            else query.notExists(ATTACHMENTS_EXIST);
+            if (filter.hasAttachments()) query.exists(VISIBLE_ATTACHMENTS_EXIST);
+            else query.notExists(VISIBLE_ATTACHMENTS_EXIST);
         }
         query.orderByDesc(Notice::getPinned, Notice::getPublishedAt, Notice::getId);
         var result = notices.selectPage(new Page<>(page.page(), page.size()), query);
@@ -75,15 +75,18 @@ public class NoticeService {
                         Wrappers.<NoticeAttachment>lambdaQuery()
                                 .select(NoticeAttachment::getId, NoticeAttachment::getFileName)
                                 .eq(NoticeAttachment::getNoticeId, id)
+                                .isNull(NoticeAttachment::getWithdrawnAt)
                                 .orderByAsc(NoticeAttachment::getId));
         return PortalResponseAssembler.noticeDetail(notice, files);
     }
 
-    /** 附件 ID 不能跨资讯复用；先验证父资讯公开，再读取受控目录中的文件。 */
+    /** 父资讯公开且附件未下架时，才允许按所属资讯和附件 ID 下载。 */
     @Transactional(readOnly = true)
     public NoticeAttachmentStorage.Download attachment(long noticeId, long fileId) {
         requirePublished(noticeId, false);
-        return storage.load(attachments.requireStoredFile(noticeId, fileId));
+        var file = attachments.requireStoredFile(noticeId, fileId);
+        if (file.getWithdrawnAt() != null) throw ApiException.notFound();
+        return storage.load(file);
     }
 
     private Notice requirePublished(long id, boolean includeBody) {

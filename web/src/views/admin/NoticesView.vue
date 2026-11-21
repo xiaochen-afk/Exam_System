@@ -42,7 +42,7 @@ const selected = computed(() => {
 })
 const isPublished = computed(() => selected.value?.notice.status === 'PUBLISHED')
 const canWrite = computed(() => hasPermission('notices.write'))
-const canAttach = computed(() => !isPublished.value && hasPermission('notices.attachments.write'))
+const canWriteAttachments = computed(() => hasPermission('notices.attachments.write'))
 const canPublish = computed(() => hasPermission('notices.publish'))
 
 function resetDialog() {
@@ -125,7 +125,9 @@ function ask(message, label, action) {
 
 function confirmPublication(published) {
   ask(
-    published ? '发布后，资讯与附件会立即在门户公开。' : '下架后，门户将隐藏该资讯及其全部附件。',
+    published
+      ? '发布后，资讯和未下架的附件会立即在门户公开。'
+      : '下架后，门户将隐藏该资讯及其全部附件。',
     published ? '确认发布' : '确认下架',
     () => adminRequest(resource.value + '/publication', { method: 'PUT', body: { published } }),
   )
@@ -134,6 +136,12 @@ function confirmPublication(published) {
 function confirmRemoval(item) {
   ask(`移除「${item.filename}」？`, '确认移除', () =>
     adminRequest(attachmentPath(item), { method: 'DELETE' }),
+  )
+}
+
+function confirmAttachmentWithdrawal(item) {
+  ask(`下架「${item.filename}」后，公众将无法下载，后台仍可查阅。`, '确认下架附件', () =>
+    adminRequest(attachmentPath(item) + '/withdrawal', { method: 'PUT' }),
   )
 }
 
@@ -254,8 +262,18 @@ function bytes(value) {
                 {{ item.filename }}
               </button>
               <small>{{ bytes(item.byteCount) }}</small>
+              <StateBadge v-if="item.withdrawnAt" value="WITHDRAWN" />
               <button
-                v-if="canAttach"
+                v-if="canWriteAttachments && !item.withdrawnAt"
+                type="button"
+                class="link-button"
+                :disabled="busy"
+                @click="confirmAttachmentWithdrawal(item)"
+              >
+                下架附件
+              </button>
+              <button
+                v-if="canWriteAttachments && !isPublished"
                 type="button"
                 class="link-button"
                 :disabled="busy"
@@ -265,7 +283,7 @@ function bytes(value) {
               </button>
             </li>
           </ul>
-          <form v-if="canAttach" class="notice-upload" @submit.prevent="upload">
+          <form v-if="canWriteAttachments" class="notice-upload" @submit.prevent="upload">
             <label>
               <span>PDF、PNG 或 JPEG，单文件最多 10 MB</span>
               <input
@@ -304,7 +322,7 @@ function bytes(value) {
         </div>
         <div v-else class="dialog-actions">
           <button
-            v-if="canWrite && !isPublished"
+            v-if="canWrite"
             type="button"
             class="button outline"
             :disabled="busy"

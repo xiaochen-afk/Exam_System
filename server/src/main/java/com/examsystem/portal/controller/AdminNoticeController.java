@@ -126,6 +126,21 @@ public class AdminNoticeController {
                 .body(row);
     }
 
+    @PutMapping("/{id}/attachments/{fileId}/withdrawal")
+    ResponseEntity<Void> withdrawAttachment(
+            @PathVariable @Positive long id,
+            @PathVariable @Positive long fileId,
+            HttpServletRequest request) {
+        return execute(
+                "notices.attachments.withdraw",
+                id,
+                request,
+                rid -> {
+                    commands.withdrawAttachment(id, fileId, rid);
+                    return ResponseEntity.noContent().build();
+                });
+    }
+
     @DeleteMapping("/{id}/attachments/{fileId}")
     ResponseEntity<Void> remove(
             @PathVariable @Positive long id,

@@ -262,6 +262,8 @@ CREATE TABLE notice_attachment (
     file_name VARCHAR(255) NOT NULL,
     media_type VARCHAR(127) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     byte_count BIGINT UNSIGNED NOT NULL,
+    withdrawn_at DATETIME(6) NULL,
+    KEY ix_attachment_notice_visibility (notice_id, withdrawn_at),
     CONSTRAINT uq_attachment_storage_key UNIQUE (storage_key),
     CONSTRAINT fk_attachment_notice FOREIGN KEY (notice_id) REFERENCES notice (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

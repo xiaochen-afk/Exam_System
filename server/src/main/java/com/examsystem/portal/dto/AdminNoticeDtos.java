@@ -4,7 +4,7 @@ import com.examsystem.portal.model.NoticeStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-/** 管理端资讯契约。附件响应只返回显示名、大小和业务 ID。 */
+/** 管理端资讯契约。附件响应包含下架时间，存储键仅在服务端使用。 */
 public final class AdminNoticeDtos {
     private AdminNoticeDtos() {}
 
@@ -34,5 +34,6 @@ public final class AdminNoticeDtos {
 
     public record Detail(Item notice, String body, List<Attachment> attachments) {}
 
-    public record Attachment(String id, String filename, long byteCount) {}
+    public record Attachment(
+            String id, String filename, long byteCount, OffsetDateTime withdrawnAt) {}
 }

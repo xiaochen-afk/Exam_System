@@ -6,6 +6,7 @@ import com.examsystem.common.error.ApiException;
 import com.examsystem.portal.assembler.AdminNoticeAssembler;
 import com.examsystem.portal.dto.AdminNoticeDtos;
 import com.examsystem.portal.entity.Notice;
+import com.examsystem.portal.entity.NoticeAttachment;
 import com.examsystem.portal.mapper.NoticeAttachmentMapper;
 import com.examsystem.portal.mapper.NoticeMapper;
 import com.examsystem.portal.model.NoticeStatus;
@@ -65,7 +66,6 @@ public class AdminNoticeCommandService {
     public AdminNoticeDtos.Item update(long id, AdminNoticeDtos.Content changes, String requestId) {
         long actor = access.requireWriter(NoticeAdminAccess.WRITE);
         Notice row = lockNotice(id, true);
-        requireEditable(row);
         NoticeContentRules.apply(row, changes);
         row.setUpdatedAt(now());
         notices.updateById(row);
@@ -116,8 +116,8 @@ public class AdminNoticeCommandService {
 
     public AdminNoticeDtos.Attachment upload(long id, MultipartFile file, String requestId) {
         long actor = access.requireWriter(NoticeAdminAccess.ATTACHMENTS);
+        // 已发布资讯可补传附件。父记录锁仍串行化上传与发布、下架，公开读取按现有状态判断。
         Notice row = lockNotice(id, false);
-        requireEditable(row);
         var attachment = storage.store(id, file);
         attachments.insert(attachment);
         touch(id);
@@ -130,10 +130,32 @@ public class AdminNoticeCommandService {
         return AdminNoticeAssembler.attachment(attachment);
     }
 
+    /** 仅撤销附件公开，保留文件供管理端查阅。父记录锁保证重复下架沿用原时间。 */
+    public void withdrawAttachment(long id, long fileId, String requestId) {
+        long actor = access.requireWriter(NoticeAdminAccess.ATTACHMENTS);
+        Notice row = lockNotice(id, false);
+        var attachment = attachments.requireStoredFile(id, fileId);
+        if (attachment.getWithdrawnAt() != null) return;
+        attachments.update(
+                Wrappers.<NoticeAttachment>lambdaUpdate()
+                        .eq(NoticeAttachment::getNoticeId, id)
+                        .eq(NoticeAttachment::getId, fileId)
+                        .set(NoticeAttachment::getWithdrawnAt, now()));
+        touch(id);
+        record(
+                actor,
+                "notices.attachments.withdraw",
+                row,
+                Map.of("attachmentId", fileId),
+                requestId);
+    }
+
     public void remove(long id, long fileId, String requestId) {
         long actor = access.requireWriter(NoticeAdminAccess.ATTACHMENTS);
         Notice row = lockNotice(id, false);
-        requireEditable(row);
+        if (NoticeStatus.PUBLISHED.name().equals(row.getStatus())) {
+            throw conflict("已发布资讯请使用附件下架");
+        }
         var attachment = attachments.requireStoredFile(id, fileId);
         attachments.deleteById(fileId);
         storage.removeAfterCommit(attachment);
@@ -148,12 +170,6 @@ public class AdminNoticeCommandService {
         Notice row = notices.selectOne(query.eq(Notice::getId, id).last("FOR UPDATE"));
         if (row == null) throw ApiException.notFound();
         return row;
-    }
-
-    private static void requireEditable(Notice row) {
-        if (NoticeStatus.PUBLISHED.name().equals(row.getStatus())) {
-            throw conflict("请先下架资讯，再修改正文或附件");
-        }
     }
 
     private void touch(long id) {

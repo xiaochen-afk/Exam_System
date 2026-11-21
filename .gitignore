@@ -17,6 +17,7 @@ Thumbs.db
 !/docs/database-schema.sql
 !/docs/database-role-seed.sql
 !/docs/database-notice-admin-migration.sql
+!/docs/database-notice-attachment-withdrawal-migration.sql
 /server/README.md
 /web/README.md
 /web/.vscode/

@@ -18,7 +18,8 @@ public interface NoticeAttachmentMapper extends BaseMapper<NoticeAttachment> {
                                         NoticeAttachment::getFileName,
                                         NoticeAttachment::getStorageKey,
                                         NoticeAttachment::getMediaType,
-                                        NoticeAttachment::getByteCount)
+                                        NoticeAttachment::getByteCount,
+                                        NoticeAttachment::getWithdrawnAt)
                                 .eq(NoticeAttachment::getId, fileId)
                                 .eq(NoticeAttachment::getNoticeId, noticeId));
         if (file == null) throw ApiException.notFound();

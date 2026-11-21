@@ -137,6 +137,8 @@ server {
 
 已运行的环境先备份数据库和私有附件。仅在旧库尚未包含资讯管理字段及权限时，在部署新版后端前对该库执行一次 [资讯管理增量脚本](docs/database-notice-admin-migration.sql)。新建库的建表和字典脚本已包含相关结构。升级和回滚时，应用版本、数据库结构与附件备份需要对应。
 
+现有库若还没有 `notice_attachment.withdrawn_at`，部署前执行一次 [附件下架增量脚本](docs/database-notice-attachment-withdrawal-migration.sql)。旧版后端会忽略该字段，启用附件下架后回滚应用时需同时处理已下架附件的公开可见性。
+
 ### 微信小程序
 
 当前可用微信开发者工具导入 `wechat_project/` 查看初始工程。待登录、账号绑定及业务 API 接入后，再配置微信公众平台的 HTTPS 请求合法域名，并通过开发者工具上传、审核和发布。AppSecret 由后端部署环境保管。

@@ -31,7 +31,8 @@ public final class AdminNoticeAssembler {
         return new AdminNoticeDtos.Attachment(
                 row.getId().toString(),
                 PortalResponseAssembler.safeFilename(row.getFileName()),
-                row.getByteCount());
+                row.getByteCount(),
+                utc(row.getWithdrawnAt()));
     }
 
     private static OffsetDateTime utc(LocalDateTime value) {
