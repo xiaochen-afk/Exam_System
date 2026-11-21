@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.registration.mapper.EnrollmentMapper">
+    <!-- 预读只用于定位父资源；最终必须和加锁后的真实关联重新比对。 -->
+    <select id="binding" resultType="com.examsystem.registration.mapper.EnrollmentMapper$Binding">
+        SELECT s.project_id, p.subject_id, s.site_id FROM exam_session s
+        JOIN exam_project p ON p.id = s.project_id WHERE s.id = #{id}
+    </select>
+
+    <!-- 全部报名及未来基础维护遵循：科目 → 项目 → 考点 → 项目考点 → 场次。 -->
+    <select id="lockSubject" resultType="string">
+        SELECT status FROM exam_subject WHERE id = #{id} FOR SHARE
+    </select>
+    <select id="lockProject" resultType="com.examsystem.registration.mapper.EnrollmentMapper$Project">
+        SELECT id, subject_id FROM exam_project WHERE id = #{id} FOR SHARE
+    </select>
+    <select id="lockSite" resultType="com.examsystem.registration.mapper.EnrollmentMapper$Site">
+        SELECT id, status, qualification_status FROM exam_site WHERE id = #{id} FOR SHARE
+    </select>
+    <select id="lockProjectSite" resultType="int">
+        SELECT registration_open FROM exam_project_site
+        WHERE project_id = #{project} AND site_id = #{site} FOR SHARE
+    </select>
+    <select id="lockSession" resultType="com.examsystem.registration.mapper.EnrollmentMapper$Session">
+        SELECT id, project_id, site_id, registration_starts_at, registration_ends_at,
+            capacity, registered_count, status, ticket_published_at, score_published_at
+        FROM exam_session WHERE id = #{id} FOR UPDATE
+    </select>
+    <select id="databaseTime" resultType="java.time.LocalDateTime">
+        SELECT UTC_TIMESTAMP(6)
+    </select>
+
+    <!-- 名额更新和报名 INSERT 处于同一事务；任一步失败回滚，不能用先查后无条件加一。 -->
+    <update id="reserve">
+        UPDATE exam_session SET registered_count = registered_count + 1
+        WHERE id = #{id} AND status = 'PUBLISHED' AND registered_count &lt; capacity
+            AND registration_starts_at &lt;= #{now} AND registration_ends_at &gt; #{now}
+            AND ticket_published_at IS NULL AND score_published_at IS NULL
+    </update>
+</mapper>

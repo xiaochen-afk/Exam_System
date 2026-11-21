@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.auth.mapper.PermissionMapper">
+    <!-- 只返回判权所需的资源归属，不把整条业务记录载入判权流程。 -->
+    <select id="session" resultType="com.examsystem.auth.mapper.PermissionMapper$SessionScope">
+        SELECT id, project_id, site_id FROM exam_session WHERE id = #{id}
+    </select>
+</mapper>

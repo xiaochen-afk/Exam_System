@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.auth.mapper.AdminMapper">
+    <!-- 1. 目录列表和总数共用关联及筛选，不能各自维护一份近似 SQL。 -->
+    <sql id="staffTables">app_user u JOIN web_credential c ON c.user_id = u.id</sql>
+    <sql id="staffFilter">
+        u.account_kind = 'STAFF'
+        AND (u.display_name LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!'
+             OR c.identifier LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!')
+        AND (#{status} = '' OR u.status = #{status})
+    </sql>
+    <select id="staff" resultType="com.examsystem.auth.mapper.AdminMapper$StaffRow">
+        SELECT u.id, u.display_name, c.identifier, u.status
+        FROM <include refid="staffTables"/> WHERE <include refid="staffFilter"/>
+        ORDER BY u.id DESC <include refid="com.examsystem.common.sql.PaginationSql.limitOffset"/>
+    </select>
+    <select id="staffCount" resultType="long">
+        SELECT COUNT(*) FROM <include refid="staffTables"/> WHERE <include refid="staffFilter"/>
+    </select>
+    <update id="updateStaff">
+        UPDATE app_user SET display_name = #{name}, status = #{status},
+            session_version = session_version + IF(#{status} = 'INACTIVE', 1, 0),
+            updated_at = UTC_TIMESTAMP(6)
+        WHERE id = #{id} AND account_kind = 'STAFF'
+    </update>
+
+    <!-- 2. 固定角色行锁，使并发管理员变更遵循相同顺序；入口计数保留原有保护口径。 -->
+    <select id="lockAdministratorRole" resultType="string">
+        SELECT code FROM auth_role WHERE code = 'SYSTEM_ADMIN' FOR UPDATE
+    </select>
+    <select id="controllingAdministratorCount" resultType="long">
+        SELECT COUNT(DISTINCT u.id) FROM app_user u JOIN staff_grant g ON g.staff_id = u.id
+        WHERE u.status = 'ACTIVE' AND g.role_code = 'SYSTEM_ADMIN'
+          AND <include refid="com.examsystem.auth.mapper.AuthSql.activeGrant"/>
+          AND EXISTS(SELECT 1 FROM staff_grant_permission gp
+                     WHERE gp.grant_id = g.id AND gp.permission_code = 'users.write')
+          AND EXISTS(SELECT 1 FROM staff_grant_permission gp
+                     WHERE gp.grant_id = g.id AND gp.permission_code = 'admins.manage')
+    </select>
+
+    <!-- 3. 单角色校验、批量目录读取共享动作上限投影和关联。 -->
+    <sql id="ceilingColumns">rp.scope_type, rp.permission_code, p.name AS permission_label</sql>
+    <sql id="ceilingTables">
+        auth_role_permission rp JOIN auth_permission p ON p.code = rp.permission_code
+    </sql>
+    <select id="ceilings" resultType="com.examsystem.auth.mapper.AdminMapper$Ceiling">
+        SELECT <include refid="ceilingColumns"/> FROM <include refid="ceilingTables"/>
+        WHERE rp.role_code = #{role} ORDER BY rp.scope_type, p.code
+    </select>
+    <select id="ceilingsForRoles" resultType="com.examsystem.auth.mapper.AdminMapper$RoleCeiling">
+        SELECT rp.role_code, <include refid="ceilingColumns"/> FROM <include refid="ceilingTables"/>
+        <choose>
+            <when test="roles != null and !roles.isEmpty()">
+                WHERE rp.role_code IN
+                <foreach collection="roles" item="role" open="(" close=")" separator=",">#{role}</foreach>
+            </when>
+            <otherwise>WHERE 1 = 0</otherwise>
+        </choose>
+        ORDER BY rp.role_code, rp.scope_type, p.code
+    </select>
+
+    <!-- 授权选项只含基础标识/名称；系统账号管理员不因此获得业务数据或统计。 -->
+    <select id="projectOptions" resultType="com.examsystem.auth.dto.AdminResponses$NamedOption">
+        SELECT CAST(p.id AS CHAR) AS id,
+            CONCAT(sub.name, ' / ', COALESCE(CONVERT(NULLIF(p.application_code, '') USING utf8mb4), '独立报考项目')) AS name
+        FROM exam_project p JOIN exam_subject sub ON sub.id = p.subject_id
+        ORDER BY sub.name, p.id
+    </select>
+    <select id="sessionOptions" resultType="com.examsystem.auth.dto.AdminResponses$NamedOption">
+        SELECT CAST(s.id AS CHAR) AS id, CONCAT(s.name, ' · ', site.name) AS name
+        FROM exam_session s JOIN exam_site site ON site.id = s.site_id
+        ORDER BY s.name, s.id
+    </select>
+
+    <!-- 4. 历史授权只撤销不删除，按唯一键恢复后整体替换动作。 -->
+    <update id="revokeAll">
+        UPDATE staff_grant SET revoked_by = #{actor}, revoked_at = UTC_TIMESTAMP(6)
+        WHERE staff_id = #{target} AND revoked_at IS NULL
+    </update>
+    <insert id="upsertGrant">
+        INSERT INTO staff_grant(staff_id, role_code, scope_type, project_id, session_id, granted_by, granted_at)
+        VALUES(#{target}, #{role}, #{scope}, #{project}, #{session}, #{actor}, UTC_TIMESTAMP(6))
+        ON DUPLICATE KEY UPDATE granted_by = #{actor}, granted_at = UTC_TIMESTAMP(6),
+            revoked_by = NULL, revoked_at = NULL
+    </insert>
+    <delete id="clearGrantPermissions">
+        DELETE FROM staff_grant_permission WHERE grant_id = #{id}
+    </delete>
+    <insert id="grantPermission">
+        INSERT INTO staff_grant_permission(grant_id, role_code, scope_type, permission_code)
+        VALUES(#{id}, #{role}, #{scope}, #{permission})
+    </insert>
+    <select id="projectExists" resultType="long">
+        SELECT COUNT(*) FROM exam_project WHERE id = #{id}
+    </select>
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.registration.mapper.RegistrationSql">
+    <!-- 列标识只从 XML include 的静态属性传入；动作和资源必须属于同一条有效授权。 -->
+    <sql id="readScope">
+        EXISTS (
+            SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE <include refid="com.examsystem.auth.mapper.AuthSql.actorGrant"/>
+                AND gp.permission_code = 'registrations.read'
+                AND <include refid="com.examsystem.auth.mapper.AuthSql.projectOrSessionScope"/>
+        )
+    </sql>
+    <sql id="rowScope">
+        <include refid="com.examsystem.registration.mapper.RegistrationSql.readScope">
+            <property name="projectColumn" value="r.project_id"/>
+            <property name="sessionColumn" value="r.session_id"/>
+        </include>
+    </sql>
+    <sql id="tables">
+        registration r JOIN exam_session s ON s.id = r.session_id
+        JOIN exam_project p ON p.id = r.project_id
+        JOIN exam_subject sub ON sub.id = p.subject_id JOIN exam_site site ON site.id = r.site_id
+    </sql>
+    <sql id="candidateColumns">
+        r.id, r.registration_number, r.session_id, s.name AS session_name, sub.name AS subject_name,
+        site.name AS site_name, s.exam_starts_at, r.submitted_at, r.status
+    </sql>
+    <sql id="adminColumns">
+        r.id, r.registration_number,
+        CASE WHEN CHAR_LENGTH(r.candidate_name_snapshot) &lt;= 1 THEN '*'
+            ELSE CONCAT(LEFT(r.candidate_name_snapshot, 1),
+                REPEAT('*', LEAST(CHAR_LENGTH(r.candidate_name_snapshot) - 1, 3))) END AS candidate_name,
+        r.candidate_type_snapshot AS candidate_type, r.school_name_snapshot AS school_name,
+        r.session_id, s.name AS session_name, sub.name AS subject_name, r.site_id,
+        site.name AS site_name, r.submitted_at, r.status
+    </sql>
+    <sql id="adminFilter">
+        <include refid="com.examsystem.registration.mapper.RegistrationSql.rowScope"/>
+        AND (#{filter.sessionId} IS NULL OR r.session_id = #{filter.sessionId})
+        AND (#{filter.siteId} IS NULL OR r.site_id = #{filter.siteId})
+        AND (#{filter.candidateType} = '' OR r.candidate_type_snapshot = #{filter.candidateType})
+        AND (#{filter.status} = '' OR r.status = #{filter.status})
+        AND CONVERT(r.registration_number USING utf8mb4) LIKE CONCAT('%', #{filter.keyword}, '%') ESCAPE '!'
+    </sql>
+</mapper>

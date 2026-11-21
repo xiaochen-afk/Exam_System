@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.exam.mapper.ProjectSiteMapper">
+    <!-- 已存在的关系保留原开关；创建草稿不能隐式开放已有项目考点。 -->
+    <insert id="ensure">
+        INSERT INTO exam_project_site (project_id, site_id, registration_open)
+        VALUES (#{project}, #{site}, 0)
+        ON DUPLICATE KEY UPDATE project_id = #{project}
+    </insert>
+    <select id="lockOpen" resultType="boolean">
+        SELECT registration_open FROM exam_project_site
+        WHERE project_id = #{project} AND site_id = #{site} FOR UPDATE
+    </select>
+    <update id="setOpen">
+        UPDATE exam_project_site SET registration_open = #{open}
+        WHERE project_id = #{project} AND site_id = #{site}
+    </update>
+</mapper>

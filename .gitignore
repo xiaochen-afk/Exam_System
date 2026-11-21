@@ -1,0 +1,26 @@
+# Temporary files
+tmp/
+*.log
+
+# Public notices are downloaded through authorized API paths, not committed as runtime files.
+/server/storage/notice-attachments/
+/storage/notice-attachments/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local documentation and collaboration files
+/AGENTS.md
+/.cursor/
+/docs/*
+!/docs/database-schema.sql
+!/docs/database-role-seed.sql
+!/docs/database-notice-admin-migration.sql
+/server/README.md
+/web/README.md
+/web/.vscode/
+
+# Local application and developer settings
+/server/src/main/resources/application.properties
+/wechat_project/project.private.config.json

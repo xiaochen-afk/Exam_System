@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.auth.mapper.AdminReadMapper">
+    <!-- 列表和总数复用同一授权谓词，不能只过滤页面条目而泄露全局总数。 -->
+    <!-- 1. 公用范围与筛选条件 -->
+    <sql id="sessionScope">
+        EXISTS (
+            SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE <include refid="com.examsystem.auth.mapper.AuthSql.actorGrant"/>
+              AND gp.permission_code = 'sessions.read'
+              AND <include refid="com.examsystem.auth.mapper.AuthSql.projectOrSessionScope">
+                  <property name="projectColumn" value="s.project_id"/>
+                  <property name="sessionColumn" value="s.id"/>
+              </include>
+        )
+    </sql>
+    <sql id="sessionFilter">
+        s.name LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!'
+        AND (#{status} = '' OR s.status = #{status}) AND <include refid="sessionScope"/>
+    </sql>
+    <!-- 2. 场次列表与计数 -->
+    <select id="sessions" resultType="com.examsystem.auth.mapper.AdminReadMapper$SessionRow">
+        SELECT s.id, s.name, p.subject_id, sub.name AS subject_name, s.site_id, site.name AS site_name,
+            s.registration_starts_at, s.registration_ends_at, s.exam_starts_at, s.exam_ends_at,
+            s.capacity, s.registered_count AS registration_count, p.application_code, s.description, s.status,
+            s.project_id, ps.registration_open,
+            (s.ticket_published_at IS NOT NULL OR s.score_published_at IS NOT NULL) AS locked
+        FROM exam_session s JOIN exam_project p ON p.id = s.project_id
+        JOIN exam_subject sub ON sub.id = p.subject_id JOIN exam_site site ON site.id = s.site_id
+        JOIN exam_project_site ps ON ps.project_id = s.project_id AND ps.site_id = s.site_id
+        WHERE <include refid="sessionFilter"/> ORDER BY s.id DESC
+        <include refid="com.examsystem.common.sql.PaginationSql.limitOffset"/>
+    </select>
+    <select id="sessionCount" resultType="long">
+        SELECT COUNT(*) FROM exam_session s WHERE <include refid="sessionFilter"/>
+    </select>
+    <!-- 3. 授权报名与排考统计 -->
+    <select id="businessCount" resultType="long">
+        SELECT COUNT(*) FROM registration r
+        <if test="assigned">JOIN exam_arrangement a ON a.registration_id = r.id</if>
+        WHERE EXISTS (
+            SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE <include refid="com.examsystem.auth.mapper.AuthSql.actorGrant"/>
+              AND gp.permission_code = #{permission}
+              AND <include refid="com.examsystem.auth.mapper.AuthSql.projectOrSessionScope">
+                  <property name="projectColumn" value="r.project_id"/>
+                  <property name="sessionColumn" value="r.session_id"/>
+              </include>
+        )
+    </select>
+    <!-- 4. 审计筛选、列表与计数 -->
+    <sql id="auditFilter">
+        (action_code LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!'
+         OR actor_label LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!'
+         OR CONCAT(target_type, '#', COALESCE(target_id, '')) LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!')
+    </sql>
+    <select id="audit" resultType="com.examsystem.auth.mapper.AdminReadMapper$AuditRow">
+        SELECT CAST(id AS CHAR) AS id, occurred_at, actor_label AS operator_name, action_code AS action,
+            CONCAT(target_type, '#', COALESCE(target_id, '')) AS target_label,
+            scope_label, result FROM audit_event WHERE <include refid="auditFilter"/>
+        ORDER BY occurred_at DESC, id DESC
+        <include refid="com.examsystem.common.sql.PaginationSql.limitOffset"/>
+    </select>
+    <select id="auditCount" resultType="long">
+        SELECT COUNT(*) FROM audit_event WHERE <include refid="auditFilter"/>
+    </select>
+</mapper>

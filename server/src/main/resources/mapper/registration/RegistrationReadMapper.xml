@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.registration.mapper.RegistrationReadMapper">
+    <!-- 1. 已公开的入口场次限定可替代项目，不接受客户端提供项目 ID 或考生 ID。 -->
+    <select id="publicProject" resultType="long">
+        SELECT s.project_id FROM exam_session s WHERE s.id = #{id}
+            AND <include refid="com.examsystem.portal.mapper.PublicExamMapper.publicSessionVisibility"/>
+    </select>
+    <select id="options" resultType="com.examsystem.registration.mapper.RegistrationReadMapper$OptionRow">
+        SELECT <include refid="com.examsystem.portal.mapper.PublicExamMapper.publicSessionProjection"/>, site.school_id
+        FROM <include refid="com.examsystem.portal.mapper.PublicExamMapper.sessionTables"/>
+        WHERE s.project_id = #{project}
+            AND <include refid="com.examsystem.portal.mapper.PublicExamMapper.publicSessionVisibility"/>
+        ORDER BY s.exam_starts_at, s.id
+    </select>
+
+    <!-- 2. 历史本人记录不因场次关闭、资料变更或目录停用而消失。 -->
+    <select id="ownProject" resultType="com.examsystem.registration.mapper.RegistrationReadMapper$CandidateRow">
+        SELECT <include refid="com.examsystem.registration.mapper.RegistrationSql.candidateColumns"/>
+        FROM <include refid="com.examsystem.registration.mapper.RegistrationSql.tables"/>
+        WHERE r.candidate_id = #{candidate} AND r.project_id = #{project}
+    </select>
+    <select id="ownDetail" resultType="com.examsystem.registration.mapper.RegistrationReadMapper$CandidateRow">
+        SELECT <include refid="com.examsystem.registration.mapper.RegistrationSql.candidateColumns"/>
+        FROM <include refid="com.examsystem.registration.mapper.RegistrationSql.tables"/>
+        WHERE r.candidate_id = #{candidate} AND r.id = #{id}
+    </select>
+    <select id="ownList" resultType="com.examsystem.registration.mapper.RegistrationReadMapper$CandidateRow">
+        SELECT <include refid="com.examsystem.registration.mapper.RegistrationSql.candidateColumns"/>
+        FROM <include refid="com.examsystem.registration.mapper.RegistrationSql.tables"/>
+        WHERE r.candidate_id = #{candidate} ORDER BY r.submitted_at DESC, r.id DESC
+        <include refid="com.examsystem.common.sql.PaginationSql.limitOffset"/>
+    </select>
+
+    <!-- 3. 后台条目与摘要使用完全相同的范围和筛选；摘要基于未分页的实际报名。 -->
+    <select id="adminList" resultType="com.examsystem.registration.mapper.RegistrationReadMapper$AdminRow">
+        SELECT <include refid="com.examsystem.registration.mapper.RegistrationSql.adminColumns"/>
+        FROM <include refid="com.examsystem.registration.mapper.RegistrationSql.tables"/>
+        WHERE <include refid="com.examsystem.registration.mapper.RegistrationSql.adminFilter"/>
+        ORDER BY r.submitted_at DESC, r.id DESC
+        <include refid="com.examsystem.common.sql.PaginationSql.limitOffset"/>
+    </select>
+    <select id="summary" resultType="com.examsystem.registration.dto.RegistrationResponses$Summary">
+        SELECT COUNT(*) AS total,
+            COALESCE(SUM(r.candidate_type_snapshot = 'STUDENT'), 0) AS student,
+            COALESCE(SUM(r.candidate_type_snapshot = 'SOCIAL'), 0) AS social,
+            COALESCE(SUM(EXISTS(SELECT 1 FROM exam_arrangement a WHERE a.registration_id = r.id)), 0) AS assigned
+        FROM registration r
+        WHERE <include refid="com.examsystem.registration.mapper.RegistrationSql.adminFilter"/>
+    </select>
+    <select id="adminDetail" resultType="com.examsystem.registration.mapper.RegistrationReadMapper$AdminRow">
+        SELECT <include refid="com.examsystem.registration.mapper.RegistrationSql.adminColumns"/>
+        FROM <include refid="com.examsystem.registration.mapper.RegistrationSql.tables"/>
+        WHERE r.id = #{id}
+            AND <include refid="com.examsystem.registration.mapper.RegistrationSql.rowScope"/>
+    </select>
+
+    <!-- 4. 筛选项也受 registrations.read 范围限制，不借角色字典或全局考点列表扩大范围。 -->
+    <select id="sessionOptions" resultType="com.examsystem.registration.dto.RegistrationResponses$NamedOption">
+        SELECT CAST(s.id AS CHAR) AS id, CONCAT(s.name, ' · ', site.name) AS name
+        FROM exam_session s JOIN exam_site site ON site.id = s.site_id
+        WHERE <include refid="com.examsystem.registration.mapper.RegistrationSql.readScope">
+            <property name="projectColumn" value="s.project_id"/>
+            <property name="sessionColumn" value="s.id"/>
+        </include>
+        ORDER BY s.name, s.id
+    </select>
+    <select id="siteOptions" resultType="com.examsystem.registration.dto.RegistrationResponses$NamedOption">
+        SELECT CAST(site.id AS CHAR) AS id, site.name FROM exam_site site
+        WHERE EXISTS (
+            SELECT 1 FROM exam_session s WHERE s.site_id = site.id
+                AND <include refid="com.examsystem.registration.mapper.RegistrationSql.readScope">
+                    <property name="projectColumn" value="s.project_id"/>
+                    <property name="sessionColumn" value="s.id"/>
+                </include>
+        ) ORDER BY site.name, site.id
+    </select>
+</mapper>

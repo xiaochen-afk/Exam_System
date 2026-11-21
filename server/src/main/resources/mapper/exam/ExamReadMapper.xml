@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.exam.mapper.ExamReadMapper">
+    <!-- 仅复用范围结构；动作使用固定常量或绑定参数，不用字符串替换业务值。 -->
+    <sql id="siteGrantMatch">
+        <include refid="com.examsystem.auth.mapper.AuthSql.actorGrant"/>
+            AND ((g.scope_type = 'CATALOG' AND g.role_code = 'ORGANIZER')
+                OR (g.scope_type = 'PROJECT' AND EXISTS (SELECT 1 FROM exam_project_site ps
+                    WHERE ps.project_id = g.project_id AND ps.site_id = site.id))
+                OR (g.scope_type = 'SESSION' AND EXISTS (SELECT 1 FROM exam_session owned
+                    WHERE owned.id = g.session_id AND owned.site_id = site.id)))
+    </sql>
+    <sql id="siteReadScope">
+        EXISTS (SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE gp.permission_code = 'sites.read' AND <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteGrantMatch"/>)
+    </sql>
+    <sql id="siteWriteScope">
+        EXISTS (SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE gp.permission_code = 'sites.write' AND <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteGrantMatch"/>)
+    </sql>
+    <sql id="siteManageScope">
+        EXISTS (SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE gp.permission_code = 'sites.manage' AND <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteGrantMatch"/>)
+    </sql>
+    <sql id="roomReadScope">
+        EXISTS (SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE gp.permission_code = 'rooms.read' AND <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteGrantMatch"/>)
+    </sql>
+    <sql id="roomWriteScope">
+        EXISTS (SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE gp.permission_code = 'rooms.write' AND <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteGrantMatch"/>)
+    </sql>
+    <sql id="siteFilter">
+        <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteReadScope"/>
+        AND (#{status} = '' OR site.status = #{status})
+        AND (site.name LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!'
+            OR site.address LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!'
+            OR sc.name LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!')
+    </sql>
+    <select id="sites" resultType="com.examsystem.exam.mapper.ExamReadMapper$SiteRow">
+        SELECT site.id, site.name, site.school_id, sc.name AS school_name, site.address,
+            site.qualification_status, site.status,
+            <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteWriteScope"/> AS editable,
+            <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteManageScope"/> AS manageable
+        FROM exam_site site LEFT JOIN school sc ON sc.id = site.school_id
+        WHERE <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteFilter"/>
+        ORDER BY site.id DESC <include refid="com.examsystem.common.sql.PaginationSql.limitOffset"/>
+    </select>
+    <select id="siteCount" resultType="long">
+        SELECT COUNT(*) FROM exam_site site LEFT JOIN school sc ON sc.id = site.school_id
+        WHERE <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteFilter"/>
+    </select>
+    <select id="canSite" resultType="long">
+        SELECT COUNT(*) FROM exam_site site WHERE site.id = #{site}
+        AND EXISTS (SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE gp.permission_code = #{action} AND <include refid="com.examsystem.exam.mapper.ExamReadMapper.siteGrantMatch"/>)
+    </select>
+    <sql id="roomFilter">
+        <include refid="com.examsystem.exam.mapper.ExamReadMapper.roomReadScope"/>
+        AND (#{status} = '' OR room.status = #{status})
+        AND room.name LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!'
+    </sql>
+    <select id="rooms" resultType="com.examsystem.exam.mapper.ExamReadMapper$RoomRow">
+        SELECT room.id, room.site_id, site.name AS site_name, room.name, room.capacity, room.status,
+            <include refid="com.examsystem.exam.mapper.ExamReadMapper.roomWriteScope"/> AS editable
+        FROM exam_room room JOIN exam_site site ON site.id = room.site_id
+        WHERE <include refid="com.examsystem.exam.mapper.ExamReadMapper.roomFilter"/>
+        ORDER BY room.id DESC <include refid="com.examsystem.common.sql.PaginationSql.limitOffset"/>
+    </select>
+    <select id="roomCount" resultType="long">
+        SELECT COUNT(*) FROM exam_room room JOIN exam_site site ON site.id = room.site_id
+        WHERE <include refid="com.examsystem.exam.mapper.ExamReadMapper.roomFilter"/>
+    </select>
+    <sql id="projectScope">
+        EXISTS (SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE <include refid="com.examsystem.auth.mapper.AuthSql.actorGrant"/>
+            AND ((g.scope_type = 'CATALOG' AND g.role_code = 'ORGANIZER' AND gp.permission_code = 'projects.create')
+                OR (g.scope_type = 'PROJECT' AND g.project_id = p.id)
+                OR (g.scope_type = 'SESSION' AND EXISTS (SELECT 1 FROM exam_session owned WHERE owned.id = g.session_id AND owned.project_id = p.id))))
+    </sql>
+    <sql id="projectFilter">
+        <include refid="com.examsystem.exam.mapper.ExamReadMapper.projectScope"/>
+        AND (sub.name LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!'
+            OR CONVERT(p.application_code USING utf8mb4) LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!')
+    </sql>
+    <select id="projects" resultType="com.examsystem.exam.mapper.ExamReadMapper$ProjectRow">
+        SELECT p.id, p.subject_id, sub.name AS subject_name, p.application_code
+        FROM exam_project p JOIN exam_subject sub ON sub.id = p.subject_id
+        WHERE <include refid="com.examsystem.exam.mapper.ExamReadMapper.projectFilter"/>
+        ORDER BY p.id DESC <include refid="com.examsystem.common.sql.PaginationSql.limitOffset"/>
+    </select>
+    <select id="projectCount" resultType="long">
+        SELECT COUNT(*) FROM exam_project p JOIN exam_subject sub ON sub.id = p.subject_id
+        WHERE <include refid="com.examsystem.exam.mapper.ExamReadMapper.projectFilter"/>
+    </select>
+    <select id="projectOptions" resultType="com.examsystem.exam.dto.ExamResponses$Option">
+        SELECT CAST(p.id AS CHAR) AS id, CONCAT(sub.name, ' / ', COALESCE(CONVERT(p.application_code USING utf8mb4), '独立项目'), ' #', p.id) AS name
+        FROM exam_project p JOIN exam_subject sub ON sub.id = p.subject_id
+        WHERE sub.status = 'ACTIVE' AND EXISTS (SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+            WHERE <include refid="com.examsystem.auth.mapper.AuthSql.actorGrant"/>
+            AND g.scope_type = 'PROJECT' AND g.project_id = p.id AND gp.permission_code = 'sessions.write')
+        ORDER BY sub.name, p.id
+    </select>
+    <select id="siteOptions" resultType="com.examsystem.exam.dto.ExamResponses$Option">
+        SELECT CAST(site.id AS CHAR) AS id, site.name FROM exam_site site
+        WHERE site.status = 'ACTIVE'
+        <choose>
+            <when test="context == 'rooms'">
+                AND <include refid="com.examsystem.exam.mapper.ExamReadMapper.roomWriteScope"/>
+            </when>
+            <otherwise>
+                AND site.qualification_status = 'QUALIFIED'
+                AND EXISTS (SELECT 1 FROM <include refid="com.examsystem.auth.mapper.AuthSql.grantTables"/>
+                    WHERE <include refid="com.examsystem.auth.mapper.AuthSql.actorGrant"/>
+                    AND gp.permission_code = 'sessions.write'
+                    AND (g.scope_type = 'PROJECT' OR (g.scope_type = 'SESSION' AND EXISTS
+                        (SELECT 1 FROM exam_session owned WHERE owned.id = g.session_id AND owned.site_id = site.id))))
+                <!-- 新增场次的考点可选基础目录；选项本身不授予考点编辑或项目开放权。 -->
+            </otherwise>
+        </choose>
+        ORDER BY site.name, site.id
+    </select>
+    <select id="subjectOptions" resultType="com.examsystem.exam.dto.ExamResponses$Option">
+        SELECT CAST(id AS CHAR) AS id, name FROM exam_subject WHERE status = 'ACTIVE' ORDER BY name, id
+    </select>
+    <select id="schoolOptions" resultType="com.examsystem.exam.dto.ExamResponses$Option">
+        SELECT CAST(id AS CHAR) AS id, name FROM school WHERE status = 'ACTIVE' ORDER BY name, id
+    </select>
+    <select id="siteHasProtectedSessions" resultType="long">
+        SELECT COUNT(*) FROM exam_session WHERE site_id = #{site}
+        AND (registered_count &gt; 0 OR ticket_published_at IS NOT NULL OR score_published_at IS NOT NULL)
+    </select>
+    <select id="roomMaxSeat" resultType="int">
+        SELECT COALESCE(MAX(seat_number), 0) FROM exam_arrangement WHERE room_id = #{room}
+    </select>
+    <select id="roomAssignments" resultType="long">
+        SELECT COUNT(*) FROM exam_arrangement WHERE room_id = #{room}
+    </select>
+    <select id="roomHasPublishedTickets" resultType="long">
+        SELECT COUNT(*) FROM exam_arrangement a JOIN exam_session s ON s.id = a.session_id
+        WHERE a.room_id = #{room} AND (s.ticket_published_at IS NOT NULL OR s.score_published_at IS NOT NULL)
+    </select>
+</mapper>

@@ -1,0 +1,198 @@
+.application-page {
+  max-width: 1060px;
+}
+.application-panel {
+  padding: clamp(1rem, 3vw, 2rem);
+}
+.application-exam {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--navy);
+}
+.application-exam strong {
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+}
+.application-exam > span {
+  color: var(--muted);
+}
+.application-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0;
+  margin: 1rem 0;
+  list-style: none;
+}
+.application-steps li {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.55rem 0.7rem;
+  border-radius: 5px;
+  background: #f1f5fc;
+  color: #485975;
+  font-weight: 650;
+}
+.application-steps li span {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: none;
+  border-radius: 50%;
+  background: #dce9fa;
+}
+.application-steps li[aria-current='step'] {
+  background: #e7f1ff;
+  color: var(--blue-strong);
+}
+.application-steps li[aria-current='step'] span {
+  background: var(--blue-strong);
+  color: #fff;
+}
+.application-steps li[data-complete='true'] {
+  color: #12634c;
+  background: #eaf6ef;
+}
+.application-content {
+  outline: none;
+}
+.application-section h2,
+.candidate-receipt h2 {
+  font-size: 1.22rem;
+}
+.candidate-form {
+  margin-top: 1rem;
+}
+.candidate-form fieldset,
+.application-options {
+  border: 0;
+  margin: 0 0 1rem;
+  padding: 0;
+  min-width: 0;
+}
+.candidate-form legend {
+  font-weight: 700;
+  margin-bottom: 0.55rem;
+}
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0.2rem 0.75rem;
+}
+.choice input,
+.application-option input {
+  min-height: 1.5rem;
+  margin: 0;
+  accent-color: var(--blue-strong);
+}
+.candidate-form label:has(select),
+.school-search label {
+  display: grid;
+  gap: 0.38rem;
+  font-weight: 650;
+}
+.school-search {
+  display: flex;
+  align-items: end;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0.6rem;
+}
+.school-search label {
+  width: min(22rem, 100%);
+}
+.candidate-form label:has(select) {
+  width: min(27rem, 100%);
+}
+.school-pages {
+  margin-top: 0.55rem;
+}
+.application-options {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+.application-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+.application-option[data-selected='true'] {
+  border-color: #79aafb;
+  background: #f2f7ff;
+}
+.option-main {
+  display: grid;
+  gap: 0.35rem;
+  color: #435069;
+  font-size: 0.93rem;
+}
+.option-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.option-title strong {
+  color: #152039;
+  font-size: 1.02rem;
+}
+.option-main a {
+  color: var(--blue-strong);
+  justify-self: start;
+}
+.recommendation {
+  border-radius: 4px;
+  padding: 0.14rem 0.35rem;
+  font-weight: 650;
+  color: #12634c;
+  background: #e3f5ec;
+  font-size: 0.83rem;
+}
+.candidate-receipt + .candidate-receipt {
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+.receipt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 550px) {
+  .application-steps li {
+    padding: 0.4rem;
+    font-size: 0.8rem;
+    gap: 0.35rem;
+  }
+  .application-steps li span {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+  .application-option {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .application-option > .badge {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

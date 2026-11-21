@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.portal.mapper.PublicExamMapper">
+    <!-- 1. 状态仅使用数量作内部判断，不将容量、已报数和余量放入公开投影。 -->
+    <sql id="sessionRegistrationStatus">
+        CASE
+            WHEN s.status = 'COMPLETED' THEN 'CLOSED'
+            WHEN sub.status != 'ACTIVE' OR site.status != 'ACTIVE'
+                OR site.qualification_status != 'QUALIFIED' OR ps.registration_open = 0
+                OR s.ticket_published_at IS NOT NULL OR s.score_published_at IS NOT NULL
+                THEN 'UNAVAILABLE'
+            WHEN #{now} &lt; s.registration_starts_at THEN 'UPCOMING'
+            WHEN #{now} &gt;= s.registration_ends_at THEN 'CLOSED'
+            WHEN s.registered_count &gt;= s.capacity THEN 'FULL'
+            ELSE 'OPEN'
+        END
+    </sql>
+    <!-- 报名 Mapper 也会复用此投影；嵌套引用须限定命名空间，避免按调用方解析。 -->
+    <sql id="publicSessionProjection">
+        s.id, s.name, sub.name AS subject_name, site.name AS site_name,
+        site.address AS site_address,
+        <include refid="com.examsystem.portal.mapper.PublicExamMapper.sessionRegistrationStatus"/> AS registration_status,
+        s.registration_starts_at, s.registration_ends_at, s.exam_starts_at, s.exam_ends_at,
+        s.description
+    </sql>
+    <sql id="sessionTables">
+        exam_session s JOIN exam_project p ON p.id = s.project_id
+        JOIN exam_subject sub ON sub.id = p.subject_id
+        JOIN exam_site site ON site.id = s.site_id
+        JOIN exam_project_site ps ON ps.project_id = s.project_id AND ps.site_id = s.site_id
+    </sql>
+    <sql id="publicSessionVisibility">s.status IN ('PUBLISHED', 'COMPLETED')</sql>
+
+    <!-- 2. 列表和总数在同一派生投影上筛选，不能出现状态过滤与 total 不一致。 -->
+    <sql id="filteredSessions">
+        FROM (
+            SELECT <include refid="publicSessionProjection"/>
+            FROM <include refid="sessionTables"/>
+            WHERE <include refid="publicSessionVisibility"/>
+                AND (s.name LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!'
+                     OR sub.name LIKE CONCAT('%', #{keyword}, '%') ESCAPE '!')
+        ) public_session
+        WHERE (#{status} = '' OR public_session.registration_status = #{status})
+    </sql>
+    <select id="sessions" resultType="com.examsystem.portal.mapper.PublicExamMapper$SessionRow">
+        SELECT public_session.* <include refid="filteredSessions"/>
+        ORDER BY CASE registration_status
+            WHEN 'OPEN' THEN 0 WHEN 'UPCOMING' THEN 1 WHEN 'FULL' THEN 2
+            WHEN 'CLOSED' THEN 3 ELSE 4 END, exam_starts_at, id
+        <include refid="com.examsystem.common.sql.PaginationSql.limitOffset"/>
+    </select>
+    <select id="sessionCount" resultType="long">
+        SELECT COUNT(*) <include refid="filteredSessions"/>
+    </select>
+    <select id="session" resultType="com.examsystem.portal.mapper.PublicExamMapper$SessionRow">
+        SELECT <include refid="publicSessionProjection"/> FROM <include refid="sessionTables"/>
+        WHERE <include refid="publicSessionVisibility"/> AND s.id = #{id}
+    </select>
+
+    <!-- 3. 考点去重后再分页；仅展示具备资格且有已发布、开放项目场次的启用考点。 -->
+    <sql id="publicSiteFilter">
+        site.status = 'ACTIVE' AND site.qualification_status = 'QUALIFIED'
+        AND EXISTS (
+            SELECT 1 FROM exam_session s JOIN exam_project p ON p.id = s.project_id
+            JOIN exam_subject sub ON sub.id = p.subject_id
+            JOIN exam_project_site ps ON ps.project_id = s.project_id AND ps.site_id = s.site_id
+            WHERE s.site_id = site.id AND s.status = 'PUBLISHED'
+                AND sub.status = 'ACTIVE' AND ps.registration_open = 1
+        )
+    </sql>
+    <select id="sites" resultType="com.examsystem.portal.mapper.PublicExamMapper$SiteRow">
+        SELECT site.id, site.name, site.address FROM exam_site site
+        WHERE <include refid="publicSiteFilter"/> ORDER BY site.name, site.id
+        <include refid="com.examsystem.common.sql.PaginationSql.limitOffset"/>
+    </select>
+    <select id="siteCount" resultType="long">
+        SELECT COUNT(*) FROM exam_site site WHERE <include refid="publicSiteFilter"/>
+    </select>
+</mapper>

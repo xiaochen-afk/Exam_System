@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.auth.mapper.AuthSql">
+    <!-- 账号与授权的共享片段，不提供任意表名或任意条件的通用执行入口。 -->
+    <sql id="accountColumns">
+        id, account_kind, display_name, status, session_version
+    </sql>
+    <sql id="grantColumns">
+        g.id AS grant_id, g.role_code, g.scope_type, g.project_id, g.session_id, gp.permission_code
+    </sql>
+    <!-- 固定别名 g / gp；动作和范围必须保留在同一条授权记录上。 -->
+    <sql id="grantTables">
+        staff_grant g JOIN staff_grant_permission gp ON gp.grant_id = g.id
+    </sql>
+    <sql id="activeGrant">g.revoked_at IS NULL</sql>
+    <sql id="actorGrant">
+        g.staff_id = #{actor}
+        AND <include refid="com.examsystem.auth.mapper.AuthSql.activeGrant"/>
+    </sql>
+    <!-- ${} 仅用于 include 中写死的列名，不接受 Mapper 参数或 HTTP 输入。
+         调用方显式传入 projectColumn、sessionColumn，并另行绑定动作条件。 -->
+    <sql id="projectOrSessionScope">
+        ((g.scope_type = 'PROJECT' AND g.project_id = ${projectColumn})
+         OR (g.scope_type = 'SESSION' AND g.session_id = ${sessionColumn}))
+    </sql>
+</mapper>
