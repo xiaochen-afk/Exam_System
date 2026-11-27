@@ -1,0 +1,43 @@
+<import src="../../shared/ui.wxml" />
+
+<view class="shell action-shell">
+  <template is="preview" data="{{preview: preview}}" />
+  <view class="page-head"><text class="detail-title" aria-role="heading">报考资料</text><text class="body">资料用于新报名及考点推荐。</text></view>
+  <block wx:if="{{state === 'ready'}}">
+    <view class="surface panel">
+      <text class="section-title">考生类型</text>
+      <view class="type-row">
+        <button class="segment {{candidateType === 'STUDENT' ? 'selected' : ''}}" data-type="STUDENT" bindtap="pickType" disabled="{{saving}}">在校考生</button>
+        <button class="segment {{candidateType === 'SOCIAL' ? 'selected' : ''}}" data-type="SOCIAL" bindtap="pickType" disabled="{{saving}}">社会考生</button>
+      </view>
+      <block wx:if="{{candidateType === 'STUDENT'}}">
+        <view class="field">
+          <text class="field-label">在读学校</text>
+          <button class="btn btn-secondary school-button" bindtap="toggleSchools" disabled="{{saving}}">{{editingSchool ? '收起学校列表' : (schoolName || '请选择学校')}}</button>
+        </view>
+        <view wx:if="{{editingSchool}}" class="field">
+          <view class="search">
+            <image class="icon" src="/assets/search-gray.png" mode="aspectFit" />
+            <input placeholder="搜索学校名称" aria-label="学校名称" value="{{draft}}" maxlength="80" confirm-type="search" bindinput="changeKeyword" bindconfirm="searchSchools" />
+            <button class="search-button" bindtap="searchSchools">搜索</button>
+          </view>
+          <view class="school-list">
+            <button wx:for="{{schools}}" wx:key="id" class="school-row" data-id="{{item.id}}" bindtap="pickSchool">
+              <text>{{item.name}}</text><text wx:if="{{item.id === schoolId}}" class="badge">已选</text>
+            </button>
+            <text wx:if="{{loadingSchools}}" class="body">正在加载学校…</text>
+            <view wx:elif="{{schoolError}}">
+              <text class="body">{{schoolError}}</text><button class="btn btn-text" bindtap="searchSchools">重新搜索</button>
+            </view>
+            <text wx:elif="{{!schools.length}}" class="body">未找到符合条件的学校</text>
+            <button wx:if="{{hasMoreSchools}}" class="btn btn-text" bindtap="moreSchools" disabled="{{loadingSchools}}">加载更多学校</button>
+          </view>
+        </view>
+      </block>
+      <template is="error" data="{{formError: formError, requestId: actionRequestId}}" />
+      <text wx:if="{{saved}}" class="body">资料已保存，可以返回继续报名。</text>
+    </view>
+    <view class="action-bar"><button class="btn btn-primary" bindtap="save" loading="{{saving}}" disabled="{{saving || !candidateType || (candidateType === 'STUDENT' && !schoolId)}}">保存资料</button></view>
+  </block>
+  <block wx:else><page-feedback state="{{state}}" message="{{message}}" request-id="{{requestId}}" bind:retry="refresh" /></block>
+</view>

@@ -1,0 +1,27 @@
+<import src="../../shared/ui.wxml" />
+
+<view class="shell">
+  <template is="preview" data="{{preview: preview}}" />
+  <view class="page-head"><text class="detail-title" aria-role="heading">准考证</text></view>
+  <block wx:if="{{state === 'ready'}}">
+    <view class="surface ticket">
+      <view class="ticket-head">
+        <image class="ticket-icon" src="/assets/ticket-blue.png" mode="aspectFit" />
+        <text class="card-title">{{ticket.subjectName}}</text>
+        <text class="caption">准考证号</text>
+        <text class="ticket-code" user-select="{{true}}">{{ticket.ticketNumber}}</text>
+      </view>
+      <view class="ticket-seats">
+        <view><text class="caption">考场</text><text class="card-title">{{ticket.roomName}}</text></view>
+        <view><text class="caption">座位号</text><text class="card-title">{{ticket.seatNumber}}</text></view>
+      </view>
+      <view class="panel">
+        <view wx:for="{{rows}}" wx:key="label" class="value-row"><text class="value-key">{{item.label}}</text><text class="value">{{item.value}}</text></view>
+      </view>
+    </view>
+    <view wx:if="{{ticket.instructions}}" class="section surface panel">
+      <text class="section-title">入场须知</text><text class="body article">{{ticket.instructions}}</text>
+    </view>
+  </block>
+  <block wx:else><page-feedback state="{{state}}" message="{{message}}" request-id="{{requestId}}" bind:retry="refresh" /></block>
+</view>

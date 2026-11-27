@@ -1,0 +1,6 @@
+<view class="dock" aria-role="tablist">
+  <navigator wx:for="{{tabs}}" wx:key="path" class="tab {{item.path === selected ? 'active' : ''}}" url="{{item.path}}" open-type="switchTab" hover-class="none" aria-role="tab" aria-selected="{{item.path === selected}}">
+    <image class="tab-icon" src="/assets/{{item.icon}}-{{item.path === selected ? 'blue' : 'gray'}}.png" mode="aspectFit" />
+    <text>{{item.label}}</text>
+  </navigator>
+</view>

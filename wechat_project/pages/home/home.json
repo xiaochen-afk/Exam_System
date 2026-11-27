@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "考试服务",
+  "usingComponents": {
+    "page-feedback": "/components/page-feedback/page-feedback"
+  }
+}

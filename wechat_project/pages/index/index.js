@@ -1,49 +1,118 @@
-// index.js
-const defaultAvatarUrl = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+const auth = require('../../utils/account')
+const { UI_PREVIEW } = require('../../utils/preview-config')
 
 Page({
   data: {
-    motto: 'Hello World',
-    userInfo: {
-      avatarUrl: defaultAvatarUrl,
-      nickName: '',
-    },
-    hasUserInfo: false,
-    canIUseGetUserProfile: wx.canIUse('getUserProfile'),
-    canIUseNicknameComp: wx.canIUse('input.type.nickname'),
+    preview: UI_PREVIEW,
+    screen: 'login',
+    pending: '',
+    error: '',
+    requestId: '',
+    candidate: null,
+    displayName: '',
+    identifier: '',
+    password: ''
   },
-  bindViewTap() {
-    wx.navigateTo({
-      url: '../logs/logs'
+
+  onLoad(options) {
+    this.returnAfterSignIn = options.return === '1'
+  },
+
+  onShow() {
+    if (auth.current()) this.restore()
+  },
+
+  restore() {
+    return this.perform('restore', async () => {
+      this.setData({ screen: 'restore' })
+      this.showCandidate(await auth.me())
     })
   },
-  onChooseAvatar(e) {
-    const { avatarUrl } = e.detail
-    const { nickName } = this.data.userInfo
-    this.setData({
-      "userInfo.avatarUrl": avatarUrl,
-      hasUserInfo: nickName && avatarUrl && avatarUrl !== defaultAvatarUrl,
-    })
+
+  login() {
+    return this.perform('login', async () => this.finishSignIn(await auth.login()))
   },
-  onInputChange(e) {
-    const nickName = e.detail.value
-    const { avatarUrl } = this.data.userInfo
-    this.setData({
-      "userInfo.nickName": nickName,
-      hasUserInfo: nickName && avatarUrl && avatarUrl !== defaultAvatarUrl,
-    })
-  },
-  getUserProfile(e) {
-    // 推荐使用wx.getUserProfile获取用户信息，开发者每次通过该接口获取用户个人信息均需用户确认，开发者妥善保管用户快速填写的头像昵称，避免重复弹窗
-    wx.getUserProfile({
-      desc: '展示用户信息', // 声明获取用户个人信息后的用途，后续会展示在弹窗中，请谨慎填写
-      success: (res) => {
-        console.log(res)
-        this.setData({
-          userInfo: res.userInfo,
-          hasUserInfo: true
-        })
+
+  submit() {
+    const { screen, displayName, identifier, password } = this.data
+    return this.perform('submit', async () => {
+      switch (screen) {
+        case 'create':
+          this.finishSignIn(await auth.register(displayName))
+          break
+        case 'link':
+          this.finishSignIn(await auth.link(identifier, password))
+          break
+        case 'credential':
+          this.showCandidate(await auth.addWebCredential(identifier, password))
+          break
       }
     })
   },
+
+  logout() {
+    return this.perform('logout', async () => {
+      await auth.logout()
+      this.setData({ screen: 'login', candidate: null })
+    })
+  },
+
+  open(event) {
+    if (this.data.pending) return
+    this.setData({
+      screen: event.currentTarget.dataset.screen,
+      error: '',
+      requestId: '',
+      displayName: '',
+      identifier: '',
+      password: ''
+    })
+  },
+
+  changeDisplayName(event) {
+    this.setData({ displayName: event.detail.value })
+  },
+
+  changeIdentifier(event) {
+    this.setData({ identifier: event.detail.value })
+  },
+
+  changePassword(event) {
+    this.setData({ password: event.detail.value })
+  },
+
+  showCandidate(candidate) {
+    this.setData({ screen: 'account', candidate, displayName: '', identifier: '', password: '' })
+  },
+
+  finishSignIn(candidate) {
+    this.showCandidate(candidate)
+    if (this.returnAfterSignIn && getCurrentPages().length > 1) wx.navigateBack()
+  },
+
+  /** 串行提交，失败时只在当前页面展示服务端错误和关联编号。 */
+  async perform(action, work) {
+    if (this.data.pending) return
+    this.setData({ pending: action, error: '', requestId: '' })
+    try {
+      await work()
+    } catch (error) {
+      if (error.code === 'MINI_ACCOUNT_REQUIRED') {
+        this.setData({ screen: 'choose' })
+        return
+      }
+      if (error.code === 'SESSION_REQUIRED') {
+        this.setData({ screen: 'login', candidate: null })
+      }
+      if (error.code === 'WEB_CREDENTIAL_EXISTS') {
+        this.showCandidate({ ...this.data.candidate, hasWebCredential: true })
+      }
+      this.setData({
+        error: error.code ? error.message : '操作暂未完成，请重试',
+        requestId: error.requestId || ''
+      })
+    } finally {
+      this.setData({ pending: '', password: '' })
+    }
+  }
 })

@@ -1,0 +1,24 @@
+<import src="../../shared/ui.wxml" />
+
+<view class="shell tab-shell">
+  <template is="preview" data="{{preview: preview}}" />
+  <view class="page-head"><text class="page-title" aria-role="heading">我的</text></view>
+  <navigator class="surface panel identity tappable" url="/pages/index/index" hover-class="none">
+    <view class="icon-box identity-icon"><image class="icon" src="/assets/user-blue.png" mode="aspectFit" /></view>
+    <view class="card-main">
+      <text class="card-title">{{displayName || (signedIn ? '考生账号' : '登录考生账号')}}</text>
+      <text class="caption">{{signedIn ? '微信与网页登录设置' : '登录后查看本人考试记录'}}</text>
+    </view>
+    <view class="chevron"></view>
+  </navigator>
+  <view class="section">
+    <view class="section-header"><text class="section-title">考试服务</text></view>
+    <view class="surface">
+      <template wx:for="{{tools}}" wx:key="label" is="nav-line" data="{{item: item}}" />
+    </view>
+  </view>
+  <view class="section">
+    <view class="section-header"><text class="section-title">消息</text></view>
+    <view class="surface"><template is="nav-line" data="{{item: messageMenu}}" /></view>
+  </view>
+</view>

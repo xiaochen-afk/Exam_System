@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.examsystem.auth.mapper.MiniProgramSessionMapper">
+    <resultMap id="sessionIdentity" type="com.examsystem.auth.model.MiniProgramSessionIdentity">
+        <constructor>
+            <idArg column="session_id" javaType="_long"/>
+            <arg column="candidate_id" javaType="_long"/>
+            <arg column="session_version" javaType="_long"/>
+        </constructor>
+    </resultMap>
+
+    <select id="findActive" resultMap="sessionIdentity">
+        SELECT s.id AS session_id, w.candidate_id, s.session_version
+        FROM mini_program_session s
+        JOIN wechat_identity w ON w.id = s.wechat_identity_id
+        JOIN app_user u ON u.id = w.candidate_id
+        WHERE s.token_digest = #{digest} AND w.app_id = #{appId}
+          AND s.revoked_at IS NULL AND s.expires_at &gt; #{now}
+          AND s.session_version = u.session_version
+          AND u.account_kind = 'CANDIDATE' AND u.status = 'ACTIVE'
+    </select>
+</mapper>

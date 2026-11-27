@@ -1,0 +1,8 @@
+.inline-header { margin-bottom: 0; }
+.option-line { width: 100%; padding: 22rpx 24rpx; gap: 18rpx; color: var(--ink); text-align: left; font-size: 25rpx; line-height: 1.45; }
+.option-line .body { margin: 6rpx 0; font-size: 24rpx; }
+.option-line.option-selected { border-color: var(--blue-line); background: var(--blue-soft); }
+.option-line[disabled] { color: var(--muted); background: var(--inset); }
+.selection-ring { display: flex; align-items: center; justify-content: center; width: 34rpx; height: 34rpx; flex: none; border: 2rpx solid var(--line-strong); border-radius: 50%; }
+.option-selected .selection-ring { border-color: var(--blue); }
+.selection-fill { width: 19rpx; height: 19rpx; border-radius: 50%; background: var(--blue); }

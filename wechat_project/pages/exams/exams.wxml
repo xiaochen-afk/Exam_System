@@ -1,0 +1,24 @@
+<import src="../../shared/ui.wxml" />
+
+<view class="shell tab-shell">
+  <template is="preview" data="{{preview: preview}}" />
+  <view class="page-head"><text class="page-title" aria-role="heading">考试场次</text></view>
+  <view class="search">
+    <image class="icon" src="/assets/search-gray.png" mode="aspectFit" />
+    <input placeholder="搜索考试或科目" aria-label="搜索考试或科目" maxlength="80" confirm-type="search" value="{{draft}}" bindinput="changeKeyword" bindconfirm="search" />
+    <button class="search-button" bindtap="search">搜索</button>
+  </view>
+  <scroll-view scroll-x="{{true}}" class="segments" show-scrollbar="{{false}}">
+    <view class="segment-row">
+      <button wx:for="{{filters}}" wx:key="value" class="segment {{selected === item.value ? 'selected' : ''}}" data-value="{{item.value}}" bindtap="pickFilter">{{item.label}}</button>
+    </view>
+  </scroll-view>
+  <block wx:if="{{state === 'ready'}}">
+    <view wx:if="{{items.length}}" class="stack">
+      <template wx:for="{{items}}" wx:key="id" is="exam-card" data="{{item: item, showSummary: true}}" />
+    </view>
+    <page-feedback wx:else state="empty" message="没有符合条件的考试场次" />
+    <template is="more" data="{{hasMore: hasMore, loadingMore: loadingMore, moreError: moreError}}" />
+  </block>
+  <block wx:else><page-feedback state="{{state}}" message="{{message}}" request-id="{{requestId}}" bind:retry="refresh" /></block>
+</view>

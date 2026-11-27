@@ -1,0 +1,51 @@
+<template name="preview">
+  <view wx:if="{{preview}}" class="preview-mark"><view class="preview-dot"></view><text>界面预览 · 示例数据</text></view>
+</template>
+
+<template name="exam-card">
+  <navigator class="surface exam-card tappable" url="/pages/exam-detail/exam-detail?id={{item.id}}" hover-class="none">
+    <view class="date-tile">
+      <text class="date-number">{{item.monthDay}}</text>
+      <text class="caption">考试日期</text>
+    </view>
+    <view class="card-main">
+      <text class="card-title">{{item.name}}</text>
+      <view class="card-meta"><text class="caption">{{item.siteName}}</text><text class="badge badge-{{item.statusTone}}">{{item.statusLabel}}</text></view>
+      <text class="caption">报名截止 {{item.registrationEnd}}</text>
+    </view>
+    <view class="chevron"></view>
+  </navigator>
+</template>
+
+<template name="notice-card">
+  <navigator class="notice-card tappable" url="/pages/notice-detail/notice-detail?id={{item.id}}" hover-class="none">
+    <view class="card-main">
+      <view class="card-top">
+        <text class="badge">{{item.pinned ? '置顶 · ' : ''}}{{item.categoryLabel}}</text>
+        <text class="caption">{{item.date}}</text>
+      </view>
+      <text class="card-title">{{item.title}}</text>
+      <text wx:if="{{showSummary}}" class="caption notice-summary">{{item.summary}}</text>
+    </view>
+    <view class="chevron"></view>
+  </navigator>
+</template>
+
+<template name="more">
+  <view wx:if="{{moreError}}" class="error-box" aria-role="alert">{{moreError}}</view>
+  <button wx:if="{{hasMore}}" class="btn btn-text" bindtap="more" loading="{{loadingMore}}" disabled="{{loadingMore}}">{{moreError ? '重试加载' : '加载更多'}}</button>
+</template>
+
+<template name="error">
+  <view wx:if="{{formError}}" class="error-box" aria-role="alert">
+    <text>{{formError}}</text><text wx:if="{{requestId}}" class="request-id" user-select="{{true}}">请求编号 {{requestId}}</text>
+  </view>
+</template>
+
+<template name="nav-line">
+  <navigator class="nav-line tappable" url="{{item.url}}" hover-class="none">
+    <view class="icon-box"><image class="icon" src="/assets/{{item.icon}}-blue.png" mode="aspectFit" /></view>
+    <text class="card-title">{{item.label}}</text>
+    <view class="chevron"></view>
+  </navigator>
+</template>

@@ -1,0 +1,8 @@
+<view wx:if="{{state !== 'ready'}}" class="surface state" aria-role="status">
+  <view class="icon-box"><image class="icon" src="{{state === 'login' ? '/assets/user-blue.png' : '/assets/list-blue.png'}}" mode="aspectFit" /></view>
+  <text class="card-title">{{state === 'loading' ? '正在加载' : state === 'login' ? '请先登录' : state === 'empty' ? '暂无内容' : state === 'pending' ? '服务待接入' : state === 'unavailable' ? '暂未开放' : '加载失败'}}</text>
+  <text wx:if="{{message}}" class="body">{{message}}</text>
+  <text wx:if="{{requestId}}" class="request-id" user-select="{{true}}">请求编号 {{requestId}}</text>
+  <navigator wx:if="{{state === 'login'}}" class="btn btn-primary" url="/pages/index/index?return=1">前往登录</navigator>
+  <button wx:if="{{state === 'error'}}" class="btn btn-secondary" bindtap="retry">重新加载</button>
+</view>

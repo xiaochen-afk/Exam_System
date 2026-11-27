@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "确认报名",
+  "usingComponents": {
+    "page-feedback": "/components/page-feedback/page-feedback"
+  }
+}

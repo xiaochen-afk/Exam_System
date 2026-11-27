@@ -1,0 +1,51 @@
+<import src="../../shared/ui.wxml" />
+
+<view class="shell action-shell">
+  <template is="preview" data="{{preview: preview}}" />
+  <view class="page-head"><text class="detail-title" aria-role="heading">确认报名</text></view>
+  <block wx:if="{{state === 'ready'}}">
+    <view class="surface panel">
+      <view class="section-header inline-header">
+        <text class="section-title">报考资料</text>
+        <navigator class="link" url="/pages/profile/profile">{{typeLabel ? '修改资料 ›' : '完善资料 ›'}}</navigator>
+      </view>
+      <view wx:if="{{typeLabel}}" class="values">
+        <view class="value-row"><text class="value-key">考生类型</text><text>{{typeLabel}}</text></view>
+        <view wx:if="{{typeLabel === '在校考生'}}" class="value-row"><text class="value-key">在读学校</text><text class="value">{{profile.schoolName || '待选择'}}</text></view>
+      </view>
+      <text wx:else class="body">请选择考生类型后继续。</text>
+    </view>
+    <view wx:if="{{existing}}" class="section surface panel">
+      <text class="section-title">本项目已报名</text>
+      <view class="actions"><navigator class="btn btn-secondary" url="/pages/record-detail/record-detail?id={{existing.id}}">查看报名回执</navigator></view>
+    </view>
+    <view wx:elif="{{typeLabel && (profile.schoolId || profile.candidateType === 'SOCIAL')}}" class="section">
+      <view class="section-header"><text class="section-title">选择考点</text></view>
+      <view wx:if="{{options.length}}" class="stack">
+        <button wx:for="{{options}}" wx:key="id" class="surface option-line {{selected.id === item.id ? 'option-selected' : ''}}" data-id="{{item.id}}" bindtap="pickSite" disabled="{{!item.selectable || submitting}}" aria-selected="{{selected.id === item.id}}">
+          <view class="selection-ring"><view wx:if="{{selected.id === item.id}}" class="selection-fill"></view></view>
+          <view class="card-main">
+            <text class="card-title">{{item.siteName}}</text>
+            <text class="body">{{item.examTime}} · {{item.siteAddress}}</text>
+            <text wx:if="{{item.unavailableReason}}" class="caption">{{item.unavailableReason}}</text>
+          </view>
+          <text wx:if="{{item.recommended}}" class="badge">本校推荐</text>
+        </button>
+      </view>
+      <page-feedback wx:else state="empty" message="暂无可选考点" />
+    </view>
+    <view wx:if="{{selected}}" class="section surface panel">
+      <text class="section-title">报名信息</text>
+      <view class="values">
+        <view class="value-row"><text class="value-key">场次</text><text class="value">{{selected.name}}</text></view>
+        <view class="value-row"><text class="value-key">考试时间</text><text class="value">{{selected.examTime}}</text></view>
+        <view class="value-row"><text class="value-key">考点</text><text class="value">{{selected.siteName}}</text></view>
+      </view>
+    </view>
+    <template is="error" data="{{formError: formError, requestId: actionRequestId}}" />
+    <view wx:if="{{options.length && !existing}}" class="action-bar">
+      <button class="btn btn-primary" bindtap="submit" loading="{{submitting}}" disabled="{{!selected || submitting}}">{{preview ? '提交演示报名' : '确认并提交'}}</button>
+    </view>
+  </block>
+  <block wx:else><page-feedback state="{{state}}" message="{{message}}" request-id="{{requestId}}" bind:retry="refresh" /></block>
+</view>

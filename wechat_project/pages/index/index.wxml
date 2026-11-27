@@ -1,27 +1,79 @@
-<!--index.wxml-->
-<scroll-view class="scrollarea" scroll-y type="list">
-  <view class="container">
-    <view class="userinfo">
-      <block wx:if="{{canIUseNicknameComp && !hasUserInfo}}">
-        <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-          <image class="avatar" src="{{userInfo.avatarUrl}}"></image>
-        </button>
-        <view class="nickname-wrapper">
-          <text class="nickname-label">昵称</text>
-          <input type="nickname" class="nickname-input" placeholder="请输入昵称" bind:change="onInputChange" />
+<import src="../../shared/ui.wxml" />
+
+<view class="shell">
+  <template is="preview" data="{{preview: preview}}" />
+  <view class="surface account-hero">
+    <image class="icon" src="/assets/user-blue.png" mode="aspectFit" />
+    <text class="detail-title" aria-role="heading">考生账号</text>
+  </view>
+
+  <view class="section surface panel">
+    <block wx:if="{{screen === 'login'}}">
+      <text class="section-title">考生登录</text>
+      <text class="body">{{preview ? '用示例账号查看报考资料、报名回执、准考证和成绩。' : '使用微信登录，关联网页考生账号后可继续查看原来的报名记录。'}}</text>
+      <view class="actions">
+        <button class="btn btn-primary" bindtap="login" loading="{{pending === 'login'}}" disabled="{{!!pending}}">{{preview ? '使用示例账号' : '微信登录'}}</button>
+        <button wx:if="{{preview}}" class="btn btn-text" data-screen="choose" bindtap="open" disabled="{{!!pending}}">查看关联与注册界面</button>
+      </view>
+    </block>
+
+    <block wx:elif="{{screen === 'restore'}}">
+      <text class="section-title">验证登录状态</text>
+      <text wx:if="{{pending === 'restore'}}" class="body">正在读取考生账号…</text>
+      <view class="actions">
+        <button wx:if="{{!pending}}" class="btn btn-primary" bindtap="restore">重新验证</button>
+        <button class="btn btn-secondary" bindtap="logout" loading="{{pending === 'logout'}}" disabled="{{!!pending}}">退出登录</button>
+      </view>
+    </block>
+
+    <block wx:elif="{{screen === 'choose'}}">
+      <text class="section-title">关联或创建账号</text>
+      <text class="body">已有网页考生账号时，请先关联以沿用原报名记录。</text>
+      <view class="actions">
+        <button class="btn btn-primary" data-screen="link" bindtap="open">关联已有网页账号</button>
+        <button class="btn btn-secondary" data-screen="create" bindtap="open">创建考生账号</button>
+        <button class="btn btn-text" data-screen="login" bindtap="open">返回</button>
+      </view>
+    </block>
+
+    <block wx:elif="{{screen === 'account'}}">
+      <text class="section-title">{{candidate.displayName}}</text>
+      <view class="values">
+        <view class="value-row"><text class="value-key">网页登录</text><text class="badge badge-{{candidate.hasWebCredential ? 'green' : 'muted'}}">{{candidate.hasWebCredential ? '已设置' : '待设置'}}</text></view>
+      </view>
+      <view class="actions">
+        <button wx:if="{{!candidate.hasWebCredential}}" class="btn btn-primary" data-screen="credential" bindtap="open" disabled="{{!!pending}}">设置网页登录账号</button>
+        <button class="btn btn-secondary" bindtap="logout" loading="{{pending === 'logout'}}" disabled="{{!!pending}}">退出登录</button>
+      </view>
+    </block>
+
+    <block wx:else>
+      <text class="section-title">{{screen === 'create' ? '创建考生账号' : screen === 'link' ? '关联网页账号' : '设置网页账号'}}</text>
+      <text wx:if="{{preview}}" class="body">预览使用示例信息，表单输入已停用。</text>
+      <text wx:elif="{{screen === 'link'}}" class="body">输入原网页考生账号和密码。</text>
+      <text wx:elif="{{screen === 'credential'}}" class="body">设置后，可在网页登录同一个考生账号。</text>
+      <view wx:if="{{screen === 'create'}}" class="field">
+        <label for="display-name" class="field-label">显示名称</label>
+        <input id="display-name" placeholder="{{preview ? '示例考生' : '输入显示名称'}}" maxlength="50" value="{{displayName}}" bindinput="changeDisplayName" disabled="{{preview || !!pending}}" />
+      </view>
+      <block wx:else>
+        <view class="field">
+          <label for="identifier" class="field-label">网页账号</label>
+          <input id="identifier" placeholder="{{preview ? '示例网页账号' : '输入网页账号'}}" maxlength="32" value="{{identifier}}" bindinput="changeIdentifier" disabled="{{preview || !!pending}}" />
+        </view>
+        <view class="field">
+          <label for="password" class="field-label">网页密码</label>
+          <input id="password" password="{{true}}" placeholder="{{preview ? '示例凭据' : (screen === 'link' ? '输入原密码' : '8–64 位，包含字母和数字')}}" maxlength="64" value="{{password}}" bindinput="changePassword" disabled="{{preview || !!pending}}" />
         </view>
       </block>
-      <block wx:elif="{{!hasUserInfo}}">
-        <button wx:if="{{canIUseGetUserProfile}}" bindtap="getUserProfile"> 获取头像昵称 </button>
-        <view wx:else> 请使用2.10.4及以上版本基础库 </view>
-      </block>
-      <block wx:else>
-        <image bindtap="bindViewTap" class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-        <text class="userinfo-nickname">{{userInfo.nickName}}</text>
-      </block>
-    </view>
-    <view class="usermotto">
-      <text class="user-motto">{{motto}}</text>
-    </view>
+      <view class="actions">
+        <button class="btn btn-primary" bindtap="submit" loading="{{pending === 'submit'}}" disabled="{{!!pending || (!preview && (screen === 'create' ? !displayName : !identifier || !password))}}">
+          {{screen === 'create' ? '创建并登录' : screen === 'link' ? '关联并登录' : '保存网页登录凭据'}}
+        </button>
+        <button class="btn btn-text" data-screen="{{screen === 'credential' ? 'account' : 'choose'}}" bindtap="open" disabled="{{!!pending}}">返回</button>
+      </view>
+    </block>
+
+    <template is="error" data="{{formError: error, requestId: requestId}}" />
   </view>
-</scroll-view>
+</view>

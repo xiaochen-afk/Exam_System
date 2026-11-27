@@ -1,0 +1,9 @@
+.ticket-head { padding: 32rpx; text-align: center; background: linear-gradient(153deg,var(--blue-soft),var(--surface)); }
+.ticket-icon { display: block; width: 64rpx; height: 64rpx; margin: 0 auto 16rpx; }
+.ticket-head .caption { display: block; margin-top: 20rpx; }
+.ticket-code { display: block; color: var(--blue-strong); font-size: 31rpx; margin-top: 8rpx; overflow-wrap: anywhere; }
+.ticket-seats { display: flex; padding: 26rpx 20rpx; border-top: 2rpx dashed var(--line-strong); background: var(--inset); text-align: center; }
+.ticket-seats > view { width: 50%; }
+.ticket-seats > view + view { border-left: 1rpx solid var(--line); }
+.ticket-seats .card-title { margin-top: 6rpx; color: var(--blue-strong); }
+.ticket > .panel { padding-top: 0; padding-bottom: 10rpx; }

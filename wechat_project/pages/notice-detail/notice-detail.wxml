@@ -1,0 +1,23 @@
+<import src="../../shared/ui.wxml" />
+
+<view class="shell">
+  <template is="preview" data="{{preview: preview}}" />
+  <block wx:if="{{state === 'ready'}}">
+    <view class="page-head">
+      <view class="byline"><text class="badge">{{item.categoryLabel}}</text><text class="caption">{{item.date}}</text></view>
+      <text class="detail-title" aria-role="heading">{{item.title}}</text>
+      <text wx:if="{{item.publisher}}" class="body">{{item.publisher}}</text>
+    </view>
+    <view class="surface panel"><text class="article" user-select="{{true}}">{{item.body}}</text></view>
+    <view wx:if="{{item.attachments.length}}" class="section">
+      <view class="section-header"><text class="section-title">附件</text></view>
+      <view class="surface">
+        <view wx:for="{{item.attachments}}" wx:key="id" class="nav-line tappable" data-id="{{item.id}}" bindtap="openAttachment" aria-role="button">
+          <text class="card-title">{{item.filename}}</text><view class="chevron"></view>
+        </view>
+      </view>
+      <template is="error" data="{{formError: formError, requestId: actionRequestId}}" />
+    </view>
+  </block>
+  <block wx:else><page-feedback state="{{state}}" message="{{message}}" request-id="{{requestId}}" bind:retry="refresh" /></block>
+</view>

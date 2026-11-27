@@ -1,0 +1,6 @@
+.record-card, .score-card { display: flex; align-items: center; gap: 20rpx; }
+.record-top { margin: 0 0 10rpx; }
+.record-card .card-title, .score-title { margin-bottom: 8rpx; }
+.score-title { margin-top: 12rpx; }
+.score { flex: none; padding: 7rpx 0 7rpx 22rpx; border-left: 1rpx solid var(--line); text-align: right; }
+.score-number { color: var(--blue-strong); font-size: 58rpx; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1; }

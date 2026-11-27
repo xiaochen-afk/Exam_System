@@ -13,6 +13,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 公开注册、密码认证和身份读取；账号事务独立于 Controller 的 Cookie/CSRF 会话交互。 */
@@ -47,18 +48,36 @@ public class AuthService {
     public long register(String identifier, String password, String displayName) {
         String normalized = AccountRules.identifier(identifier);
         String hash = encoder.encode(AccountRules.password(password));
+        long id = createCandidate(displayName);
+        saveWebCredential(id, normalized, hash);
+        return id;
+    }
+
+    /** Web 与小程序共用考生及资料初始化，由调用方和认证记录一起提交。 */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public long createCandidate(String displayName) {
         UserAccount user = new UserAccount();
         user.setAccountKind("CANDIDATE");
         user.setDisplayName(AccountRules.displayName(displayName));
-        // 用户、凭据和资料必须整体提交；数据库唯一键负责并发重复注册的最终防线。
+        mapper.insert(user);
+        profiles.createForCandidate(user.getId());
+        return user.getId();
+    }
+
+    /** 新增 Web 凭据使用相同的校验、密码编码和标识唯一性规则。 */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void addWebCredential(long userId, String identifier, String password) {
+        String normalized = AccountRules.identifier(identifier);
+        String hash = encoder.encode(AccountRules.password(password));
+        saveWebCredential(userId, normalized, hash);
+    }
+
+    private void saveWebCredential(long userId, String identifier, String hash) {
         try {
-            mapper.insert(user);
-            credentials.create(user.getId(), normalized, hash);
-            profiles.createForCandidate(user.getId());
+            credentials.create(userId, identifier, hash);
         } catch (DuplicateKeyException conflict) {
             throw new ApiException(HttpStatus.CONFLICT, "IDENTIFIER_TAKEN", "此账号已被使用");
         }
-        return user.getId();
     }
 
     // endregion

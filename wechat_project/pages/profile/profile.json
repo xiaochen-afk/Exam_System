@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "报考资料",
+  "usingComponents": {
+    "page-feedback": "/components/page-feedback/page-feedback"
+  }
+}

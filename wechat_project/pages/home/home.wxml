@@ -1,0 +1,44 @@
+<import src="../../shared/ui.wxml" />
+
+<view class="shell tab-shell home-shell">
+  <template is="preview" data="{{preview: preview}}" />
+  <view class="hero">
+    <image src="/assets/campus-cover.png" class="hero-image" mode="widthFix" />
+    <view class="hero-copy">
+      <text class="hero-title" aria-role="heading">考生服务</text>
+      <text class="hero-desc">报名、准考证与成绩查询</text>
+      <navigator class="hero-button tappable" url="/pages/exams/exams" open-type="switchTab" hover-class="none">浏览考试 <view class="chevron"></view></navigator>
+    </view>
+  </view>
+
+  <view class="surface shortcuts">
+    <navigator wx:for="{{shortcuts}}" wx:key="label" class="shortcut tappable" url="{{item.url}}" hover-class="none">
+      <view class="icon-box"><image class="icon" src="/assets/{{item.icon}}-blue.png" mode="aspectFit" /></view>
+      <text>{{item.label}}</text>
+    </navigator>
+  </view>
+
+  <view wx:if="{{state === 'ready'}}">
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">近期考试</text>
+        <navigator class="link" url="/pages/exams/exams" open-type="switchTab">全部考试 ›</navigator>
+      </view>
+      <view wx:if="{{exams.length}}" class="stack">
+        <template wx:for="{{exams}}" wx:key="id" is="exam-card" data="{{item: item}}" />
+      </view>
+      <page-feedback wx:else state="empty" message="暂无已发布的考试场次" />
+    </view>
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">最新通知</text>
+        <navigator class="link" url="/pages/notices/notices" open-type="switchTab">全部通知 ›</navigator>
+      </view>
+      <view wx:if="{{notices.length}}" class="surface">
+        <template wx:for="{{notices}}" wx:key="id" is="notice-card" data="{{item: item}}" />
+      </view>
+      <page-feedback wx:else state="empty" message="暂无已发布的考务资讯" />
+    </view>
+  </view>
+  <view wx:else class="section"><page-feedback state="{{state}}" message="{{message}}" request-id="{{requestId}}" bind:retry="refresh" /></view>
+</view>

@@ -1,0 +1,3 @@
+.receipt { background: linear-gradient(165deg,var(--blue-soft),var(--surface) 54%); }
+.receipt-title { margin: 18rpx 0 24rpx; }
+.receipt-number { display: block; margin-top: 5rpx; color: var(--ink); font-size: 27rpx; letter-spacing: 1rpx; overflow-wrap: anywhere; }

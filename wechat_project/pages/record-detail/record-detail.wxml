@@ -1,0 +1,22 @@
+<import src="../../shared/ui.wxml" />
+
+<view class="shell">
+  <template is="preview" data="{{preview: preview}}" />
+  <block wx:if="{{state === 'ready'}}">
+    <view class="page-head"><text class="detail-title" aria-role="heading">报名回执</text></view>
+    <view class="surface panel receipt">
+      <text class="badge badge-green">已报名</text>
+      <text class="section-title receipt-title">{{item.sessionName}}</text>
+      <text class="caption">报名编号</text>
+      <text class="receipt-number" user-select="{{true}}">{{item.registrationNumber}}</text>
+      <view class="values">
+        <view wx:for="{{rows}}" wx:key="label" class="value-row"><text class="value-key">{{item.label}}</text><text class="value">{{item.value}}</text></view>
+      </view>
+    </view>
+    <view class="actions">
+      <navigator class="btn btn-primary" url="/pages/ticket/ticket?id={{item.id}}">查看准考证</navigator>
+      <navigator class="btn btn-text" url="/pages/records/records">全部报名记录</navigator>
+    </view>
+  </block>
+  <block wx:else><page-feedback state="{{state}}" message="{{message}}" request-id="{{requestId}}" bind:retry="refresh" /></block>
+</view>

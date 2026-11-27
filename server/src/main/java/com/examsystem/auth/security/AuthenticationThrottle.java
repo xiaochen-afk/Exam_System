@@ -23,7 +23,7 @@ public class AuthenticationThrottle {
         this.clock = clock;
     }
 
-    /** operation 由业务代码固定为 login/register；认证前调用，不因账号不存在而跳过计数。 */
+    /** operation 由服务端固定；Web 和小程序共享涉及 Web 密码验证及考生注册的额度。 */
     public synchronized void check(String operation, String remoteAddress, String identifier) {
         long now = clock.millis();
         counters.entrySet().removeIf(entry -> entry.getValue().expiresAt <= now);

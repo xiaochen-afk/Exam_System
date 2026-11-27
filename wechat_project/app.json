@@ -1,12 +1,47 @@
 {
   "pages": [
+    "pages/home/home",
+    "pages/exams/exams",
+    "pages/notices/notices",
+    "pages/mine/mine",
     "pages/index/index",
-    "pages/logs/logs"
+    "pages/exam-detail/exam-detail",
+    "pages/notice-detail/notice-detail",
+    "pages/profile/profile",
+    "pages/registration/registration",
+    "pages/records/records",
+    "pages/record-detail/record-detail",
+    "pages/ticket/ticket"
   ],
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Weixin",
-    "navigationBarBackgroundColor": "#ffffff"
+    "navigationBarTitleText": "考试服务",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#FFFFFF"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#54637A",
+    "selectedColor": "#0B63D8",
+    "backgroundColor": "#FFFFFF",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/exams/exams",
+        "text": "考试"
+      },
+      {
+        "pagePath": "pages/notices/notices",
+        "text": "通知"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的"
+      }
+    ]
   },
   "style": "v2",
   "componentFramework": "glass-easel",

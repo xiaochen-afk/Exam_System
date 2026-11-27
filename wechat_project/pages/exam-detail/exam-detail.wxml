@@ -1,0 +1,36 @@
+<import src="../../shared/ui.wxml" />
+
+<view class="shell {{item.statusTone === 'green' ? 'action-shell' : ''}}">
+  <template is="preview" data="{{preview: preview}}" />
+  <block wx:if="{{state === 'ready'}}">
+    <view class="page-head">
+      <view class="detail-badge"><text class="badge badge-{{item.statusTone}}">{{item.statusLabel}}</text></view>
+      <text class="detail-title" aria-role="heading">{{item.name}}</text>
+      <text class="body">{{item.subjectName}}</text>
+    </view>
+    <view class="surface panel">
+      <text class="section-title">考试安排</text>
+      <view class="values">
+        <view class="value-row"><text class="value-key">考试开始</text><text class="value">{{item.examTime}}</text></view>
+        <view class="value-row"><text class="value-key">考试结束</text><text class="value">{{item.examEnd}}</text></view>
+        <view class="value-row"><text class="value-key">考点</text><text class="value">{{item.siteName}}</text></view>
+        <view wx:if="{{item.siteAddress}}" class="value-row"><text class="value-key">地址</text><text class="value">{{item.siteAddress}}</text></view>
+      </view>
+    </view>
+    <view class="section surface panel">
+      <text class="section-title">报名时间（北京时间）</text>
+      <view class="values">
+        <view class="value-row"><text class="value-key">开始</text><text class="value">{{item.registrationStart}}</text></view>
+        <view class="value-row"><text class="value-key">截止</text><text class="value">{{item.registrationEnd}}</text></view>
+      </view>
+    </view>
+    <view wx:if="{{item.description}}" class="section surface panel">
+      <text class="section-title">报考说明</text>
+      <text class="body article">{{item.description}}</text>
+    </view>
+    <view wx:if="{{item.statusTone === 'green'}}" class="action-bar">
+      <navigator class="btn btn-primary tappable" url="/pages/registration/registration?id={{item.id}}">去报名</navigator>
+    </view>
+  </block>
+  <block wx:else><page-feedback state="{{state}}" message="{{message}}" request-id="{{requestId}}" bind:retry="refresh" /></block>
+</view>

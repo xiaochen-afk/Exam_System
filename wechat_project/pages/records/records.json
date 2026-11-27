@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "我的报名",
+  "usingComponents": {
+    "page-feedback": "/components/page-feedback/page-feedback"
+  }
+}
